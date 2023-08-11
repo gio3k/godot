@@ -810,6 +810,18 @@ Files extracted from upstream source:
 - `LICENSE`
 
 
+## yoga
+
+- Upstream: https://github.com/facebook/yoga
+- Version: 2.0.0 (ef5784aca647a68343f5409e379519827edb86a9, 2023)
+- License: MIT
+
+Files extracted from upstream source:
+
+- All `*.cpp` and `*.h` files in the `yoga/` subdirectory
+- `LICENSE`
+
+
 ## zlib
 
 - Upstream: https://www.zlib.net
