@@ -38,3 +38,11 @@ Error PuppyRealm::_poll() {
 	// We're done here!
 	return OK;
 }
+
+void PuppyRealm::_set_target_peer(const int p_peer_id) const {
+	_peer->set_target_peer(p_peer_id);
+}
+
+void PuppyRealm::_send_to_peer(const uint8_t *p_buffer, const int p_len) const {
+	_peer->put_packet(p_buffer, p_len);
+}

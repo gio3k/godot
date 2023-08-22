@@ -68,13 +68,26 @@ protected:
 
 	/**
 	 * \brief Called for every packet found after polling
-	 * \param buffer Pointer to packet data
-	 * \param len Packet length
-	 * \param sender Packet sender
-	 * \param channel Packet channel
-	 * \param mode Packet transfer mode
+	 * \param p_buffer Pointer to packet data
+	 * \param p_len Packet length
+	 * \param p_sender Packet sender
+	 * \param p_channel Packet channel
+	 * \param p_mode Packet transfer mode
 	 */
-	virtual void _handle(const uint8_t *buffer, int len, int sender, int channel, MultiplayerPeer::TransferMode mode) = 0;
+	virtual void _handle(const uint8_t *p_buffer, int p_len, int p_sender, int p_channel, MultiplayerPeer::TransferMode p_mode) = 0;
+
+	/**
+	 * \brief Set the target (of transfer) to a new peer
+	 * \param p_peer_id Peer ID to target
+	 */
+	void _set_target_peer(int p_peer_id) const;
+
+	/**
+	 * \brief Send data to the current target peer
+	 * \param p_buffer Data buffer
+	 * \param p_len Data length
+	 */
+	void _send_to_peer(const uint8_t *p_buffer, int p_len) const;
 
 public:
 	explicit PuppyRealm(PuppyMultiplayer *p_multiplayer) {
