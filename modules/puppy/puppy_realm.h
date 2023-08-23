@@ -89,6 +89,18 @@ protected:
 	 */
 	void _send_to_peer(const uint8_t *p_buffer, int p_len) const;
 
+	/**
+	 * \brief Set current transfer mode
+	 * \param p_mode Transfer mode
+	 */
+	void _set_transfer_mode(MultiplayerPeer::TransferMode p_mode) const;
+
+	/**
+	 * \brief Set current transfer channel
+	 * \param p_channel Transfer channel
+	 */
+	void _set_transfer_channel(int p_channel) const;
+
 public:
 	explicit PuppyRealm(PuppyMultiplayer *p_multiplayer) {
 		_multiplayer = p_multiplayer;

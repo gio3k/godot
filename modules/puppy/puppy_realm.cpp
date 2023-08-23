@@ -76,3 +76,11 @@ void PuppyRealm::_set_target_peer(const int p_peer_id) const {
 void PuppyRealm::_send_to_peer(const uint8_t *p_buffer, const int p_len) const {
 	_peer->put_packet(p_buffer, p_len);
 }
+
+void PuppyRealm::_set_transfer_mode(const MultiplayerPeer::TransferMode p_mode) const {
+	_peer->set_transfer_mode(p_mode);
+}
+
+void PuppyRealm::_set_transfer_channel(const int p_channel) const {
+	_peer->set_transfer_channel(p_channel);
+}
