@@ -3,9 +3,13 @@
 Import("env")
 Import("env_modules")
 
-env_mp = env_modules.Clone()
+env_puppy = env_modules.Clone()
 
 module_obj = []
-env_mp.add_source_files(module_obj, "*.cpp")
+env_puppy.add_source_files(module_obj, "*.cpp")
+env_puppy.add_source_files(module_obj, "realm/*.cpp")
+env_puppy.add_source_files(module_obj, "realm/client/*.cpp")
+env_puppy.add_source_files(module_obj, "realm/server/*.cpp")
+env_puppy.add_source_files(module_obj, "node/*.cpp")
 
 env.modules_sources += module_obj
