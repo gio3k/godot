@@ -1,0 +1,9 @@
+#!/usr/bin/python
+
+Import("env")
+
+common_libnx = [
+
+]
+
+prog = env.add_program("#bin/godot", common_libnx)
