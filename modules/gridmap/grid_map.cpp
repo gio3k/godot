@@ -267,6 +267,7 @@ void GridMap::set_mesh_library(const Ref<MeshLibrary> &p_mesh_library) {
 	}
 
 	_recreate_octant_data();
+	emit_signal(CoreStringNames::get_singleton()->changed);
 }
 
 Ref<MeshLibrary> GridMap::get_mesh_library() const {
@@ -906,13 +907,14 @@ void GridMap::_notification(int p_what) {
 			}
 		} break;
 
-#ifdef DEBUG_ENABLED
 		case NOTIFICATION_ENTER_TREE: {
+#ifdef DEBUG_ENABLED
 			if (bake_navigation && NavigationServer3D::get_singleton()->get_debug_navigation_enabled()) {
 				_update_navigation_debug_edge_connections();
 			}
-		} break;
 #endif // DEBUG_ENABLED
+			_update_visibility();
+		} break;
 
 		case NOTIFICATION_TRANSFORM_CHANGED: {
 			Transform3D new_xform = get_global_transform();
