@@ -150,7 +150,7 @@ void BoneAttachment3D::_check_bind() {
 		if (bone_idx != -1) {
 			sk->connect(SNAME("bone_pose_changed"), callable_mp(this, &BoneAttachment3D::on_bone_pose_update));
 			bound = true;
-			call_deferred(SNAME("on_bone_pose_update"), bone_idx);
+			callable_mp(this, &BoneAttachment3D::on_bone_pose_update).call_deferred(bone_idx);
 		}
 	}
 }
@@ -244,7 +244,7 @@ int BoneAttachment3D::get_bone_idx() const {
 
 void BoneAttachment3D::set_override_pose(bool p_override) {
 	override_pose = p_override;
-	set_notify_local_transform(override_pose);
+	set_notify_transform(override_pose);
 	set_process_internal(override_pose);
 
 	if (!override_pose) {
@@ -301,7 +301,7 @@ void BoneAttachment3D::_notification(int p_what) {
 			_check_unbind();
 		} break;
 
-		case NOTIFICATION_LOCAL_TRANSFORM_CHANGED: {
+		case NOTIFICATION_TRANSFORM_CHANGED: {
 			_transform_changed();
 		} break;
 
