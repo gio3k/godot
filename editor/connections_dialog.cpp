@@ -616,7 +616,7 @@ void ConnectDialog::init(const ConnectionData &p_cd, const PackedStringArray &p_
 	signal_args = p_signal_args;
 
 	tree->set_selected(nullptr);
-	tree->set_marked(source, true);
+	tree->set_marked(source);
 
 	if (p_cd.target) {
 		set_dst_node(static_cast<Node *>(p_cd.target));
@@ -1101,9 +1101,9 @@ void ConnectionsDock::_open_connection_dialog(TreeItem &p_item) {
 	cd.signal = StringName(signal_name);
 	cd.target = dst_node;
 	cd.method = ConnectDialog::generate_method_callback_name(cd.source, signal_name, cd.target);
-	connect_dialog->popup_dialog(signal_name + "(" + String(", ").join(signal_args) + ")");
 	connect_dialog->init(cd, signal_args);
 	connect_dialog->set_title(TTR("Connect a Signal to a Method"));
+	connect_dialog->popup_dialog(signal_name + "(" + String(", ").join(signal_args) + ")");
 }
 
 /*

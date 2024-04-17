@@ -69,15 +69,17 @@
 #include "servers/display_server.h"
 #include "servers/movie_writer/movie_writer.h"
 #include "servers/movie_writer/movie_writer_mjpeg.h"
-#include "servers/navigation_server_2d.h"
-#include "servers/navigation_server_2d_dummy.h"
 #include "servers/navigation_server_3d.h"
 #include "servers/navigation_server_3d_dummy.h"
-#include "servers/physics_server_2d.h"
 #include "servers/register_server_types.h"
 #include "servers/rendering/rendering_server_default.h"
 #include "servers/text/text_server_dummy.h"
 #include "servers/text_server.h"
+
+// 2D
+#include "servers/navigation_server_2d.h"
+#include "servers/navigation_server_2d_dummy.h"
+#include "servers/physics_server_2d.h"
 
 #ifndef _3D_DISABLED
 #include "servers/physics_server_3d.h"
@@ -92,6 +94,7 @@
 #include "editor/debugger/editor_debugger_node.h"
 #include "editor/doc_data_class_path.gen.h"
 #include "editor/doc_tools.h"
+#include "editor/editor_file_system.h"
 #include "editor/editor_help.h"
 #include "editor/editor_node.h"
 #include "editor/editor_paths.h"
@@ -142,15 +145,15 @@ static MessageQueue *message_queue = nullptr;
 
 // Initialized in setup2()
 static AudioServer *audio_server = nullptr;
+static CameraServer *camera_server = nullptr;
 static DisplayServer *display_server = nullptr;
 static RenderingServer *rendering_server = nullptr;
-static CameraServer *camera_server = nullptr;
 static TextServerManager *tsman = nullptr;
+static ThemeDB *theme_db = nullptr;
+static NavigationServer2D *navigation_server_2d = nullptr;
 static PhysicsServer2DManager *physics_server_2d_manager = nullptr;
 static PhysicsServer2D *physics_server_2d = nullptr;
 static NavigationServer3D *navigation_server_3d = nullptr;
-static NavigationServer2D *navigation_server_2d = nullptr;
-static ThemeDB *theme_db = nullptr;
 #ifndef _3D_DISABLED
 static PhysicsServer3DManager *physics_server_3d_manager = nullptr;
 static PhysicsServer3D *physics_server_3d = nullptr;
@@ -184,6 +187,7 @@ static OS::ProcessID editor_pid = 0;
 static bool found_project = false;
 static bool auto_build_solutions = false;
 static String debug_server_uri;
+static bool wait_for_import = false;
 #ifndef DISABLE_DEPRECATED
 static int converter_max_kb_file = 4 * 1024; // 4MB
 static int converter_max_line_length = 100000;
@@ -347,7 +351,6 @@ void initialize_navigation_server() {
 
 	// Fall back to dummy if no default server has been registered.
 	if (!navigation_server_3d) {
-		WARN_PRINT_ONCE("No NavigationServer3D implementation has been registered! Falling back to a dummy implementation: navigation features will be unavailable.");
 		navigation_server_3d = memnew(NavigationServer3DDummy);
 	}
 
@@ -358,7 +361,6 @@ void initialize_navigation_server() {
 	// Init 2D Navigation Server
 	navigation_server_2d = NavigationServer2DManager::new_default_server();
 	if (!navigation_server_2d) {
-		WARN_PRINT_ONCE("No NavigationServer2D implementation has been registered! Falling back to a dummy implementation: navigation features will be unavailable.");
 		navigation_server_2d = memnew(NavigationServer2DDummy);
 	}
 
@@ -619,6 +621,7 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--main-loop <main_loop_name>", "Run a MainLoop specified by its global class name.\n");
 	print_help_option("--check-only", "Only parse for errors and quit (use with --script).\n");
 #ifdef TOOLS_ENABLED
+	print_help_option("--import", "Starts the editor, waits for any resources to be imported, and then quits.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--export-release <preset> <path>", "Export the project in release mode using the given preset and output path. The preset name should match one defined in \"export_presets.cfg\".\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("", "<path> should be absolute or relative to the project directory, and include the filename for the binary (e.g. \"builds/game.exe\").\n");
 	print_help_option("", "The target directory must exist.\n");
@@ -694,7 +697,9 @@ Error Main::test_setup() {
 
 	/** INITIALIZE SERVERS **/
 	register_server_types();
+#ifndef _3D_DISABLED
 	XRServer::set_xr_mode(XRServer::XRMODE_OFF); // Skip in tests.
+#endif // _3D_DISABLED
 	initialize_modules(MODULE_INITIALIZATION_LEVEL_SERVERS);
 	GDExtensionManager::get_singleton()->initialize_extensions(GDExtension::INITIALIZATION_LEVEL_SERVERS);
 
@@ -1422,12 +1427,17 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing file to load argument after --validate-extension-api, aborting.");
 				goto error;
 			}
-
+		} else if (I->get() == "--import") {
+			editor = true;
+			cmdline_tool = true;
+			wait_for_import = true;
+			quit_after = 1;
 		} else if (I->get() == "--export-release" || I->get() == "--export-debug" ||
 				I->get() == "--export-pack") { // Export project
 			// Actually handling is done in start().
 			editor = true;
 			cmdline_tool = true;
+			wait_for_import = true;
 			main_args.push_back(I->get());
 #ifndef DISABLE_DEPRECATED
 		} else if (I->get() == "--export") { // For users used to 3.x syntax.
@@ -2268,6 +2278,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			// Editor and project manager cannot run with rendering in a separate thread (they will crash on startup).
 			rtm = OS::RENDER_THREAD_SAFE;
 		}
+#if !defined(THREADS_ENABLED)
+		rtm = OS::RENDER_THREAD_SAFE;
+#endif
 		OS::get_singleton()->_render_thread_mode = OS::RenderThreadMode(rtm);
 	}
 
@@ -2711,7 +2724,9 @@ Error Main::setup2() {
 	}
 
 	if (OS::get_singleton()->_render_thread_mode == OS::RENDER_SEPARATE_THREAD) {
-		WARN_PRINT("The Multi-Threaded rendering thread model is experimental, and has known issues which can lead to project crashes. Use the Single-Safe option in the project settings instead.");
+		WARN_PRINT("The Multi-Threaded rendering thread model is experimental. Feel free to try it since it will eventually become a stable feature.\n"
+				   "However, bear in mind that at the moment it can lead to project crashes or instability.\n"
+				   "So, unless you want to test the engine, use the Single-Safe option in the project settings instead.");
 	}
 
 	/* Initialize Pen Tablet Driver */
@@ -4019,11 +4034,11 @@ bool Main::iteration() {
 		if ((!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
 			if (RenderingServer::get_singleton()->has_changed()) {
 				RenderingServer::get_singleton()->draw(true, scaled_step); // flush visual commands
-				Engine::get_singleton()->frames_drawn++;
+				Engine::get_singleton()->increment_frames_drawn();
 			}
 		} else {
 			RenderingServer::get_singleton()->draw(true, scaled_step); // flush visual commands
-			Engine::get_singleton()->frames_drawn++;
+			Engine::get_singleton()->increment_frames_drawn();
 			force_redraw_requested = false;
 		}
 	}
@@ -4085,6 +4100,12 @@ bool Main::iteration() {
 	if ((quit_after > 0) && (Engine::get_singleton()->_process_frames >= quit_after)) {
 		exit = true;
 	}
+
+#ifdef TOOLS_ENABLED
+	if (wait_for_import && EditorFileSystem::get_singleton()->doing_first_scan()) {
+		exit = false;
+	}
+#endif
 
 	if (fixed_fps != -1) {
 		return exit;

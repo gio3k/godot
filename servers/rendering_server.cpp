@@ -83,25 +83,16 @@ static PackedInt64Array to_int_array(const Vector<ObjectID> &ids) {
 }
 
 PackedInt64Array RenderingServer::_instances_cull_aabb_bind(const AABB &p_aabb, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
 	Vector<ObjectID> ids = instances_cull_aabb(p_aabb, p_scenario);
 	return to_int_array(ids);
 }
 
 PackedInt64Array RenderingServer::_instances_cull_ray_bind(const Vector3 &p_from, const Vector3 &p_to, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
 	Vector<ObjectID> ids = instances_cull_ray(p_from, p_to, p_scenario);
 	return to_int_array(ids);
 }
 
 PackedInt64Array RenderingServer::_instances_cull_convex_bind(const TypedArray<Plane> &p_convex, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
 	Vector<Plane> planes;
 	for (int i = 0; i < p_convex.size(); ++i) {
 		const Variant &v = p_convex[i];
@@ -2783,6 +2774,7 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("viewport_set_fsr_sharpness", "viewport", "sharpness"), &RenderingServer::viewport_set_fsr_sharpness);
 	ClassDB::bind_method(D_METHOD("viewport_set_texture_mipmap_bias", "viewport", "mipmap_bias"), &RenderingServer::viewport_set_texture_mipmap_bias);
 	ClassDB::bind_method(D_METHOD("viewport_set_update_mode", "viewport", "update_mode"), &RenderingServer::viewport_set_update_mode);
+	ClassDB::bind_method(D_METHOD("viewport_get_update_mode", "viewport"), &RenderingServer::viewport_get_update_mode);
 	ClassDB::bind_method(D_METHOD("viewport_set_clear_mode", "viewport", "clear_mode"), &RenderingServer::viewport_set_clear_mode);
 	ClassDB::bind_method(D_METHOD("viewport_get_render_target", "viewport"), &RenderingServer::viewport_get_render_target);
 	ClassDB::bind_method(D_METHOD("viewport_get_texture", "viewport"), &RenderingServer::viewport_get_texture);
