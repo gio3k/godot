@@ -1815,9 +1815,7 @@ void GDScriptParser::clear_unused_annotations() {
 	annotation_stack.clear();
 }
 
-bool GDScriptParser::register_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, AnnotationAction p_apply, const Vector<Variant> &p_default_arguments, bool p_is_vararg) {
-	ERR_FAIL_COND_V_MSG(valid_annotations.has(p_info.name), false, vformat(R"(Annotation "%s" already registered.)", p_info.name));
-
+GDScriptParser::AnnotationInfo GDScriptParser::create_annotation_info(const MethodInfo &p_info, uint32_t p_target_kinds, AnnotationAction p_apply, const Vector<Variant> &p_default_arguments, bool p_is_vararg) {
 	AnnotationInfo new_annotation;
 	new_annotation.info = p_info;
 	new_annotation.info.default_arguments = p_default_arguments;
@@ -1826,25 +1824,21 @@ bool GDScriptParser::register_annotation(const MethodInfo &p_info, uint32_t p_ta
 	}
 	new_annotation.apply = p_apply;
 	new_annotation.target_kind = p_target_kinds;
+	return new_annotation;
+}
 
-	valid_annotations[p_info.name] = new_annotation;
+bool GDScriptParser::register_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, AnnotationAction p_apply, const Vector<Variant> &p_default_arguments, bool p_is_vararg) {
+	ERR_FAIL_COND_V_MSG(valid_annotations.has(p_info.name), false, vformat(R"(Annotation "%s" already registered.)", p_info.name));
+	valid_annotations[p_info.name] = create_annotation_info(p_info, p_target_kinds, p_apply, p_default_arguments, p_is_vararg);
 	return true;
 }
 
 bool GDScriptParser::register_static_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, StaticAnnotationAction p_apply, const Vector<Variant> &p_default_arguments, bool p_is_vararg) {
 	ERR_FAIL_COND_V_MSG(valid_annotations.has(p_info.name), false, vformat(R"(Annotation "%s" already registered.)", p_info.name));
-
-	AnnotationInfo new_annotation;
-	new_annotation.info = p_info;
-	new_annotation.info.default_arguments = p_default_arguments;
-	if (p_is_vararg) {
-		new_annotation.info.flags |= METHOD_FLAG_VARARG;
-	}
-
+	AnnotationInfo new_annotation = create_annotation_info(p_info, p_target_kinds, nullptr, p_default_arguments, p_is_vararg);
 	new_annotation.info.flags |= METHOD_FLAG_STATIC;
 	new_annotation.apply_static = p_apply;
 	new_annotation.target_kind = p_target_kinds;
-
 	valid_annotations[p_info.name] = new_annotation;
 	return true;
 }
