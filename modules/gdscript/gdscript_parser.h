@@ -1404,6 +1404,7 @@ public:
 	};
 
 private:
+	static bool has_registered_annotations;
 	static HashMap<StringName, AnnotationInfo> valid_annotations;
 	List<AnnotationNode *> annotation_stack;
 

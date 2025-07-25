@@ -73,11 +73,13 @@ Variant::Type GDScriptParser::get_builtin_type(const StringName &p_type) {
 HashMap<String, String> GDScriptParser::theme_color_names;
 #endif
 
+bool GDScriptParser::has_registered_annotations = false;
 HashMap<StringName, GDScriptParser::AnnotationInfo> GDScriptParser::valid_annotations;
 
 void GDScriptParser::cleanup() {
 	builtin_types.clear();
 	valid_annotations.clear();
+	has_registered_annotations = false;
 }
 
 void GDScriptParser::get_annotation_list(List<MethodInfo> *r_annotations) const {
@@ -92,7 +94,7 @@ bool GDScriptParser::annotation_exists(const String &p_annotation_name) const {
 
 GDScriptParser::GDScriptParser() {
 	// Register valid annotations.
-	if (unlikely(valid_annotations.is_empty())) {
+	if (unlikely(!has_registered_annotations)) {
 		// Script annotations.
 		register_annotation(MethodInfo("@tool"), AnnotationInfo::SCRIPT, &GDScriptParser::tool_annotation);
 		register_annotation(MethodInfo("@icon", PropertyInfo(Variant::STRING, "icon_path")), AnnotationInfo::SCRIPT, &GDScriptParser::icon_annotation);
@@ -136,6 +138,8 @@ GDScriptParser::GDScriptParser() {
 		// Networking.
 		register_annotation(MethodInfo("@rpc", PropertyInfo(Variant::STRING, "mode"), PropertyInfo(Variant::STRING, "sync"), PropertyInfo(Variant::STRING, "transfer_mode"), PropertyInfo(Variant::INT, "transfer_channel")), AnnotationInfo::FUNCTION, &GDScriptParser::rpc_annotation, varray("authority", "call_remote", "unreliable", 0));
 	}
+
+	has_registered_annotations = true;
 
 #ifdef DEBUG_ENABLED
 	is_ignoring_warnings = !(bool)GLOBAL_GET("debug/gdscript/warnings/enable");
