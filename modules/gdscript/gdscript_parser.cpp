@@ -30,6 +30,7 @@
 
 #include "gdscript_parser.h"
 
+#include "core/object/object.h"
 #include "gdscript.h"
 #include "gdscript_tokenizer_buffer.h"
 
@@ -1820,6 +1821,24 @@ bool GDScriptParser::register_annotation(const MethodInfo &p_info, uint32_t p_ta
 		new_annotation.info.flags |= METHOD_FLAG_VARARG;
 	}
 	new_annotation.apply = p_apply;
+	new_annotation.target_kind = p_target_kinds;
+
+	valid_annotations[p_info.name] = new_annotation;
+	return true;
+}
+
+bool GDScriptParser::register_static_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, StaticAnnotationAction p_apply, const Vector<Variant> &p_default_arguments, bool p_is_vararg) {
+	ERR_FAIL_COND_V_MSG(valid_annotations.has(p_info.name), false, vformat(R"(Annotation "%s" already registered.)", p_info.name));
+
+	AnnotationInfo new_annotation;
+	new_annotation.info = p_info;
+	new_annotation.info.default_arguments = p_default_arguments;
+	if (p_is_vararg) {
+		new_annotation.info.flags |= METHOD_FLAG_VARARG;
+	}
+
+	new_annotation.info.flags |= METHOD_FLAG_STATIC;
+	new_annotation.apply_static = p_apply;
 	new_annotation.target_kind = p_target_kinds;
 
 	valid_annotations[p_info.name] = new_annotation;
@@ -4265,7 +4284,12 @@ bool GDScriptParser::AnnotationNode::apply(GDScriptParser *p_this, Node *p_targe
 		return true;
 	}
 	is_applied = true;
-	return (p_this->*(p_this->valid_annotations[name].apply))(this, p_target, p_class);
+	const AnnotationInfo& annotation_info = p_this->valid_annotations[name];
+	if (annotation_info.info.flags & METHOD_FLAG_STATIC) {
+		return (annotation_info.apply_static)(p_this, this, p_target, p_class);	
+	} else {
+		return (p_this->*(annotation_info.apply))(this, p_target, p_class);
+	}
 }
 
 bool GDScriptParser::AnnotationNode::applies_to(uint32_t p_target_kinds) const {

@@ -52,9 +52,9 @@
 #endif
 
 class GDScriptParser {
+public:
 	struct AnnotationInfo;
 
-public:
 	// Forward-declare all parser nodes, to avoid ordering issues.
 	struct AnnotationNode;
 	struct ArrayNode;
@@ -1378,6 +1378,10 @@ private:
 	bool lambda_ended = false; // Marker for when a lambda ends, to apply an end of statement if needed.
 
 	typedef bool (GDScriptParser::*AnnotationAction)(AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
+
+public:
+	typedef bool (*StaticAnnotationAction)(GDScriptParser *p_this, AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
+
 	struct AnnotationInfo {
 		enum TargetKind {
 			NONE = 0,
@@ -1392,9 +1396,14 @@ private:
 			CLASS_LEVEL = CLASS | VARIABLE | CONSTANT | SIGNAL | FUNCTION,
 		};
 		uint32_t target_kind = 0; // Flags.
-		AnnotationAction apply = nullptr;
+		union {
+			StaticAnnotationAction apply_static;
+			AnnotationAction apply = nullptr;
+		};
 		MethodInfo info;
 	};
+
+private:
 	static HashMap<StringName, AnnotationInfo> valid_annotations;
 	List<AnnotationNode *> annotation_stack;
 
@@ -1522,6 +1531,11 @@ private:
 	// Annotations
 	AnnotationNode *parse_annotation(uint32_t p_valid_targets);
 	static bool register_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, AnnotationAction p_apply, const Vector<Variant> &p_default_arguments = Vector<Variant>(), bool p_is_vararg = false);
+
+public:
+	static bool register_static_annotation(const MethodInfo &p_info, uint32_t p_target_kinds, StaticAnnotationAction p_apply, const Vector<Variant> &p_default_arguments = Vector<Variant>(), bool p_is_vararg = false);
+
+private:
 	bool validate_annotation_arguments(AnnotationNode *p_annotation);
 	void clear_unused_annotations();
 	bool tool_annotation(AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
